@@ -23,7 +23,7 @@ description: 将 openfilm/openfilm 的官方更新融合到 lsiten/openfilm，�
 1. 检查当前分支、跟踪分支、工作区和暂存差异。脏工作区只有在已获提交授权且审阅后才提交，否则保留并报告阻塞；不自动 stash、reset 或清理文件。
 2. fetch `upstream` 和 `lsiten`；记录起始 HEAD、两个远端 SHA，查看双方新提交及发布 / 迁移说明。fork 远端若领先本地，先整合这些提交，不覆盖它们。
 3. 用 `git merge-base HEAD upstream/main` 建立共同祖先，分别审阅双方从共同祖先起的提交与差异。此子项目曾是浅克隆；缺少祖先时对相关远端 deepen，必要时 unshallow，不能用 unrelated-histories 合并。
-4. 创建不重名的 `codex/pre-sync-时间戳` 本地备份分支。默认在当前工作分支普通 merge；真正分叉时用 `git merge --no-commit --no-ff <已核实的引用>`，审查后提交。已经包含的提交不重复合并，不 rebase 或重写已推送主分支。
+4. 创建不重名的 `codex/pre-sync-时间戳` 本地备份分支。子模块初始化后通常处于游离 HEAD：此时先从当前 gitlink SHA 创建 `codex/sync-openfilm-时间戳` 工作分支，不直接切回可能落后的 main。已有工作分支时就在该分支普通 merge；真正分叉时用 `git merge --no-commit --no-ff <已核实的引用>`，审查后提交。已经包含的提交不重复合并，不 rebase 或重写已推送主分支。
 5. 对重叠模块列出上游改进、本地改进、融合方案与验证。冲突逐段读取祖先、本地、上游并检查调用方；禁止全文件选 ours/theirs。没有文本冲突也需检查 API、文件路由、构建产物、脚本、锁文件与文档的语义兼容。
 
 同一目标的实现优先选择更可靠、可维护且测试充分的一份，补齐另一份独有能力；缺陷可以被淘汰，不能以“保留双方”为由保留回归。需求本身冲突且无法从现有上下文决定时，说明具体选择再等待用户，不代用户删除能力。
@@ -70,4 +70,4 @@ node --test packages/openfilm/src/player.test.mjs packages/openfilm/src/skills.t
 提交前检查完整暂存差异、冲突标记、`git diff --check` 和敏感信息；未完成的合并可用 `git merge --abort` 回到起点，先确认解决冲突过程没有混入新的用户改动。
 授权推送后核实 `lsiten` 地址，再显式 `git push lsiten HEAD:main`（用户指定其他分支则遵循指定）。普通 push 被拒绝时 fetch 并融合远端新增提交，不 force push。未解决冲突或同步引入检查失败时停止推送；只要求审阅或本地同步则不推送、不创建 PR。
 
-最后用 `git ls-remote lsiten refs/heads/main` 核实远端 SHA 与提交一致，报告采用的上游改进、保留的本地能力、融合决策、测试结果及父仓库 gitlink 状态。
+最后核实实际推送目标的远端 SHA 与提交一致；默认命令为 `git ls-remote lsiten refs/heads/main`，用户指定其他分支时替换该引用。报告采用的上游改进、保留的本地能力、融合决策、测试结果及父仓库 gitlink 状态。
