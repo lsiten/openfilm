@@ -217,7 +217,11 @@ export async function startStudio({ port = 4747, key, openBrowser = systemBrowse
     if (path === '/open') {
       if (!sameKey(url.searchParams.get('key'))) throw new HttpError(403, 'this link is from another Studio launch; use the one `openfilm open` printed');
       const to = url.searchParams.get('to') ?? '/';
-      res.writeHead(302, { location: keyed(/^\/(?!\/)[^\s\\]*$/.test(to) ? to : '/'), 'set-cookie': signIn, 'referrer-policy': 'no-referrer' });
+      /* a pin (an embedded preview, Easel's panel) keeps its project and ignores `open` broadcasts: carry it to the
+         project route, so the redirect does not drop the isolation flag */
+      const dest = new URL(/^\/(?!\/)[^\s\\]*$/.test(to) ? to : '/', origin);
+      if (url.searchParams.has('pin')) dest.searchParams.set('pin', url.searchParams.get('pin') ?? '1');
+      res.writeHead(302, { location: keyed(dest.pathname + dest.search), 'set-cookie': signIn, 'referrer-policy': 'no-referrer' });
       return res.end();
     }
     if (!path.startsWith('/api/')) {

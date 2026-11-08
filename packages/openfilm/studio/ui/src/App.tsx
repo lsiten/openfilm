@@ -21,6 +21,12 @@ import { sourcesApi } from './lib/project-sources';
 import { LIST_WAIT_MS, within } from './lib/projects-page';
 
 /**
+ * A pinned page (an embedded preview, Easel's panel): it keeps the project in its address and ignores `openfilm open`
+ * broadcasts, so one shared Studio can show a different project per session — the pages do not flip to each other
+ * (the isolation the panel needs is at the app layer, not by one Studio per session).
+ */
+const pinned = new URLSearchParams(location.search).get('pin') === '1';
+/**
  * `to` with this page's key in its address (the server puts it there): the address bar is what a person copies, and
  * with the key a copied address opens Studio in any browser on this machine, or in an agent's preview.
  */
@@ -52,6 +58,9 @@ export function App() {
     /* `openfilm open` while this page is open: show the project it opened (with tabs, the app says which tab does) */
     const stop = listen('events', (event) => {
       if (event.type !== 'open') return;
+      /* pinned: stay on this page's project (Easel isolates per session here, so another session's `open` does not
+         flip it); the panel reloads this page when its own project changes */
+      if (pinned) return;
       if (tabs) tabs.openRequest(event.to); else go(event.to);
     }, { watch: true });
     return () => { window.removeEventListener('popstate', onPop); stop(); };

@@ -416,7 +416,21 @@ export type StudioCommand =
  */
 export type CommunityItem = { kind: 'skill'; name: string } | { kind: 'example'; id: string } | { kind: 'discover' } | { kind: 'examples' };
 
-export const studioHost: StudioHost | null = (globalThis as { openfilmHost?: StudioHost }).openfilmHost ?? null;
+/**
+ * Embedded in a page: the app shows Studio in an iframe, cross-origin, so it cannot set `window.openfilmHost`
+ * on this frame. Studio then reaches the app back over postMessage: its "Reference in chat" (refer — from the
+ * menus of a clip, a layer, a track or a file, from ⌘L, a clip dragged out and the canvas) is posted to the
+ * parent, which the app's chat takes as a reference, the way a same-window host hears it in place. A page not
+ * embedded (Studio opened in its own tab) has no parent to reach, so no bridge is made.
+ */
+const embeddedInFrame = (() => { try { return window.parent !== window; } catch { return false; } })();
+const parentBridge: StudioHost | null = embeddedInFrame
+  ? {
+      version: 1,
+      refer: (ref) => { try { window.parent?.postMessage({ source: 'openfilm-studio', type: 'openfilm:reference', ref }, '*'); } catch { /* the parent may be gone */ } },
+    }
+  : null;
+export const studioHost: StudioHost | null = (globalThis as { openfilmHost?: StudioHost }).openfilmHost ?? parentBridge ?? null;
 
 /** Make room for the host window's controls, and let Studio's top bars drag the window (see `titlebar`). */
 export function applyStudioHost(root: HTMLElement = document.documentElement) {

@@ -10,6 +10,7 @@ import { chromium } from 'playwright-core';
 import { DEFAULT_STAGE, FILM_FILE, readFilmFile } from './film-doc.mjs';
 import { readableLink } from './media-links.mjs';
 import { guard } from './browser-memory.mjs';
+import { playerFiles } from './player-files.mjs';
 
 // Media seeks that land inside the frame they name. A plain `video.currentTime = t` at a frame boundary otherwise
 // shows the previous frame about a third of the time. Every page that draws a film by seeking video runs it first,
@@ -53,15 +54,41 @@ function captionTextCss() {
  * clip loads nothing as it is read (the timeline gives a video its file when the playhead comes near it): a film of a
  * hundred clips would otherwise open a hundred files at once, and its first frame wait behind them.
  */
-const filmStart = (stage) => `<style>html,body{margin:0;overflow:hidden}:where(body){background:#000}`
+const filmStart = (stage, fit) => `<style>html,body{margin:0;overflow:hidden}:where(body){background:#000}`
   + `body>section{display:contents}body>section>:is(iframe,video,img,audio){position:absolute;left:0;top:0;margin:0;visibility:hidden}`
   /* a clip not on draws no filter: Chromium paints a hidden element's filter (an feImage, a mask's stroke) all the same */
   + `body>section>:not([style*="visibility: visible"]){filter:none!important}`
   + `body>section>iframe{border:0;width:${stage.w}px;height:${stage.h}px}:where(body>section>:is(video,img)){object-fit:contain}</style>`
+  + (fit ? filmFit(stage) : '')
   + `<script>${HOLD_MEDIA}</script>`
   + `<script type="module" src="__film/timeline.mjs"></script>`;
-/* a clip's <video> or <audio> as the parser makes it: no loading (a media element starts loading in a task after its
+/* a fit of the stage to whatever shows the film (an embedded preview, Easel's panel): the stage is the film's own
+   size; here it is scaled and centered to the viewport (a portrait film letterboxed in a wide frame, a wide film in
+   a tall one), so a preview shows the whole picture instead of its top. Only a self-play preview (film-preview=1)
+   asks for it: a host-driven film is laid out at the stage and driven by its own host, not fitted here. */
+const filmFit = (stage) => {
+  const w = Math.max(1, Math.round(stage.w) || 1);
+  const h = Math.max(1, Math.round(stage.h) || 1);
+  return `<style>:where(body){transform-origin:0 0}</style>`
+    + `<script>`
+    + `(()=>{var w=${w},h=${h},fit=function(){var b=document.body;if(!b)return;`
+    + `var vw=window.innerWidth||document.documentElement.clientWidth||w;`
+    + `var vh=window.innerHeight||document.documentElement.clientHeight||h;`
+    + `var s=0;try{s=Math.min(vw/w,vh/h)}catch(e){}if(!isFinite(s)||s<=0)s=1;`
+    + `var l=Math.round((vw-w*s)/2),t=Math.round((vh-h*s)/2);`
+    + `b.style.transformOrigin='0 0';b.style.transform='translate('+l+'px,'+t+'px) scale('+s+')';};`
+    + `fit();document.addEventListener('DOMContentLoaded',fit);`
+    + `window.addEventListener('load',fit);window.addEventListener('resize',fit,{passive:true});`
+    + `if(typeof ResizeObserver!=='undefined'){try{new ResizeObserver(fit).observe(document.documentElement)}catch(e){}}`
+    + `var n=0,iv=setInterval(function(){if(++n>40){clearInterval(iv);return}fit()},100);`
+    + `})();`
+    + `</script>`;
+};/* a clip's <video> or <audio> as the parser makes it: no loading (a media element starts loading in a task after its
    src is set; this runs before, at the end of the parser's task) */
+
+const playerStart = (stage) => `<script>window.filmHost={version:'0.1',name:'player'};${SEEK_INSIDE_FRAME}${FILM_CLOCK}</script>`
+  + filmStart(stage, true) + '<script type="module" src="__film/player.mjs"></script>';
+
 const HOLD_MEDIA = `(()=>{const o=new MutationObserver((list)=>{for(const m of list)for(const n of m.addedNodes)if((n.localName==='video'||n.localName==='audio')&&n.parentNode?.localName==='section')n.preload='none'});o.observe(document,{childList:true,subtree:true});document.addEventListener('DOMContentLoaded',()=>o.disconnect(),{once:true})})();`;
 
 const TYPES = {
@@ -86,6 +113,7 @@ const TYPES = {
 export function folderFiles(root, { inject = `<script>${HOST_FLAG}</script>`, timelineInject = inject, headers: extraHeaders = {}, swap } = {}) {
   root = resolve(root);
   return (req, res, path, query) => {
+    if (playerFiles(res, path, extraHeaders)) return true;
     /* beside any film, wherever in the folder it is (its page asks for them relative to itself) */
     if (path.endsWith('/__film/timeline.mjs')) {
       // the built-in timeline: plays a film.html (see timeline.mjs)
@@ -157,9 +185,23 @@ export function folderFiles(root, { inject = `<script>${HOST_FLAG}</script>`, ti
     if (req.method === 'HEAD') { res.writeHead(200, headers).end(); return true; }
     if (type.startsWith('text/html') && query?.get('film-host') !== '0') {
       const html = readFileSync(file, 'utf8');
-      /* the film itself: played by the timeline, and the host's driving of it (`timelineInject`) put in */
+      /* the film itself: played by the timeline. The host's driving of it (`timelineInject`, the filmHost
+         flag and a host's bridge) is put in so the film waits for a host — except ?film-preview=1 (a person
+         or an embedded preview, Easel's panel): the timeline and its placing CSS (filmStart) stay, so a page
+         clip is positioned and hidden, but the filmHost flag and a host's bridge are dropped, so the film's
+         own auto-play runs instead of waiting. ?film-host=0 is untouched above: the timeline re-fetches it
+         to read the raw film (it must parse, so no injection there). */
       const film = rel === `/${FILM_FILE}` || rel.endsWith(`/${FILM_FILE}`);
-      const start = film ? timelineInject + filmStart(readFilmFile(html).doc?.stage ?? DEFAULT_STAGE) : inject;
+      const selfPlay = query?.get('film-preview') === '1';
+      /* ?player=1: a person or an embedded preview (Easel's message card) — not auto-played, with a
+         play/pause + scrub bar and a host bridge, defaulting to paused. ?film-preview=1 (a person or the
+         panel) keeps the old auto-play; a host (Studio's editor) keeps the filmHost bridge above. */
+      const isPlayer = query?.get('player') === '1';
+      const stageOf = readFilmFile(html).doc?.stage ?? DEFAULT_STAGE;
+      const start = film
+        ? (isPlayer ? playerStart(stageOf)
+          : (selfPlay ? '' : timelineInject) + filmStart(stageOf, selfPlay))
+        : inject;
       res.writeHead(200, headers).end(injectFirst(film ? holdPages(html) : html, start));
       return true;
     }

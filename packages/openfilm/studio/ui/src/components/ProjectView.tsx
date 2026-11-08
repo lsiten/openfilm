@@ -456,15 +456,17 @@ export function ProjectView({ projectId, onProject, onLeave }: {
     preview.current?.captions?.();
   }, [rawListing, projectId]);
   React.useEffect(() => () => setCaptionSelection(null), [projectId]);
-  /* the canvas over the panes, or the edit: by project, as left */
-  const [canvasOpen, setCanvasOpenState] = React.useState(() => canvasShown(projectId));
+  /* the canvas over the panes, or the edit: by project, as left. A pinned page (an embedded preview, Easel's panel)
+     keeps the edit (the timeline) and never the canvas: the panel shows the making process, not a board */
+  const pinned = new URLSearchParams(location.search).get('pin') === '1';
+  const [canvasOpen, setCanvasOpenState] = React.useState(() => (pinned ? false : canvasShown(projectId)));
   /** the canvas node a chat's reference asked to be shown (`n`: each time again) */
   const [canvasFocus, setCanvasFocus] = React.useState<{ id: string; n: number } | null>(null);
   /** a board to lay down on the canvas (an example's, copied in) */
   const [canvasInsert, setCanvasInsert] = React.useState<{ doc: CanvasDoc; n: number } | null>(null);
   /* opening it stops the film playing (the panes under it are hidden): the player's pause, set once it is made */
   const pauseRef = React.useRef<() => void>(() => {});
-  React.useEffect(() => { setCanvasOpenState(canvasShown(projectId)); }, [projectId]);
+  React.useEffect(() => { setCanvasOpenState(pinned ? false : canvasShown(projectId)); }, [projectId]);
   const setCanvasOpen = React.useCallback((open: boolean) => {
     if (open) pauseRef.current();
     setCanvasOpenState(open);
