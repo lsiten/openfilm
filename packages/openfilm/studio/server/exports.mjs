@@ -563,7 +563,7 @@ async function clipFilm(root, clipId, { change = {}, doc = filmDoc(root) } = {})
 
 
 const H264_CRF = { standard: 23, high: 18, master: 14 };
-const X265_CRF = { standard: 28, high: 23, master: 19 };
+const X265_CRF = { standard: 28, high: 23, master: 14 };
 const VP9_CRF = { standard: 36, high: 30, master: 20 };
 /** Bits per pixel per frame by quality, for encoders that take a bitrate (the same scale as the dialog's estimate). */
 const BPP = { standard: 0.07, high: 0.11, master: 0.2 };
@@ -603,8 +603,9 @@ function encoding(codec, quality, size, fps, have, hw = null) {
     case 'hevc':
       if (hw) return { encoder: hw, format: { video: [...hardwareOptions(hw, bits(0.8), { gop }), ...BT709], tag: ['-tag:v', 'hvc1', ...HEVC_709] } };
       if (have.has('libx265')) {
-        /* master in 10 bits (Main 10): a dark gradient keeps steps 8 bits break into bands */
-        return { encoder: 'libx265', format: { video: ['-c:v', 'libx265', '-preset', 'medium', '-crf', String(X265_CRF[quality]), '-x265-params', 'log-level=error', '-tag:v', 'hvc1', ...BT709], tag: ['-tag:v', 'hvc1', ...HEVC_709], ...(quality === 'master' ? { pix: YUV_709('yuv420p10le') } : {}) } };
+        /* master in 10 bits (Main 10), with finer grain-aware encoding: small changing dither must not become one
+           frozen texture. It costs more time and bytes; the smaller delivery qualities keep their settings. */
+        return { encoder: 'libx265', format: { video: ['-c:v', 'libx265', '-preset', quality === 'master' ? 'slow' : 'medium', '-crf', String(X265_CRF[quality]), ...(quality === 'master' ? ['-tune', 'grain'] : []), '-x265-params', 'log-level=error', '-tag:v', 'hvc1', ...BT709], tag: ['-tag:v', 'hvc1', ...HEVC_709], ...(quality === 'master' ? { pix: YUV_709('yuv420p10le') } : {}) } };
       }
       if (have.has('hevc_videotoolbox')) return { encoder: 'hevc_videotoolbox', format: { video: ['-c:v', 'hevc_videotoolbox', '-b:v', bitrate(0.8), '-g', String(gop), '-tag:v', 'hvc1', ...BT709], tag: ['-tag:v', 'hvc1', ...HEVC_709] } };
       throw new ExportError('this computer\'s ffmpeg has no HEVC encoder (libx265 or hevc_videotoolbox)');
@@ -822,12 +823,17 @@ export function createExports({ onChange = () => {}, captions = subtitlesForExpo
    * @param {ExportJob} job @param {number} share
    */
   const frames = (job, share = 0.96) => {
+    /* the rate from the first frame drawn on: drawing starts after the first report (a resumed render's first says
+       the frames a render that stopped drew), and again after one that counts from fewer (drawn again) */
     let first = 0;
+    let from = -1;
+    let drawing = false;
     let told = 0;
     return (/** @type {number} */ done, /** @type {number} */ total) => {
       const now = Date.now();
-      if (done === 1) first = now;
-      const rate = done > 1 ? (done - 1) / Math.max(0.001, (now - first) / 1000) : 0;
+      if (from < 0 || done < from) { from = done; first = now; drawing = false; }
+      else if (!drawing && done > from) { from = done; first = now; drawing = true; }
+      const rate = done > from ? (done - from) / Math.max(0.001, (now - first) / 1000) : 0;
       if (now - told < 200 && done < total) return;
       told = now;
       update(job, {
@@ -903,7 +909,9 @@ export function createExports({ onChange = () => {}, captions = subtitlesForExpo
             const { format } = encoding(codec, quality, size, fps ?? 30, have);
             await run(['-i', frames, '-map', '0:v:0', '-map', '0:a?', '-vf', /** @type {{ pix: string }} */ (format).pix, ...format.video, '-c:a', 'copy', part], signal);
           } else {
-            const rendered = await renderTo(job, target, part, opts, signal);
+            /* named by the file it makes, not the partial one: an export the app quit or crashed in is resumed by the next
+               (render-resume.mjs); one cancelled here leaves nothing */
+            const rendered = await renderTo(job, target, part, { ...opts, resumeAs: out }, signal);
             selectedRanges = rendered.ranges ?? null;
           }
         } catch (e) {
@@ -913,7 +921,7 @@ export function createExports({ onChange = () => {}, captions = subtitlesForExpo
           broken(hw);
           ({ encoder, opts } = how(null));
           update(job, { encoder, framesDone: 0, progress: 0, etaMs: null });
-          const rendered = await renderTo(job, target, part, opts, signal);
+          const rendered = await renderTo(job, target, part, { ...opts, resumeAs: out }, signal);
           selectedRanges = rendered.ranges ?? null;
         }
         await renameSafely(part, out);
