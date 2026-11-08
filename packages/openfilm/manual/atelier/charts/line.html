@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Line chart</title>
+<style>
+:root { --bg: #0F172A; --color: #38BDF8; --accent: #F59E0B; --ink: #F8FAFC; --muted: #94A3B8; --font: 'Inter', 'PingFang SC', 'Noto Sans SC', sans-serif; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); font-family: var(--font); }
+#frame { position: fixed; inset: 0; display: flex; flex-direction: column; }
+.title { color: var(--ink); font-size: 4.2vw; font-weight: 800; margin: 6vh 0 2vh 8vw; }
+.sub { color: var(--muted); font-size: 2.1vw; font-weight: 500; margin: -1vh 0 0 8.2vw; }
+#chart { flex: 1; width: 100%; }
+svg { width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<div id="frame">
+  <div class="title" id="title">Revenue over time</div>
+  <div class="sub" id="sub">in millions</div>
+  <div id="chart"><svg id="c"></svg></div>
+</div>
+<script type="module">
+/* Animated line/area chart. Colors from CSS vars. The picture is a function of t alone. */
+const data = [12, 19, 17, 28, 34, 31, 46, 52];
+const box = document.getElementById('chart'), svg = document.getElementById('c');
+const css = getComputedStyle(document.documentElement);
+const color = () => css.getPropertyValue('--color').trim() || '#38BDF8';
+const accent = () => css.getPropertyValue('--accent').trim() || '#F59E0B';
+const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+function draw(t) {
+  const W = box.clientWidth, H = box.clientHeight;
+  if (W === 0 || H === 0) return;
+  const padL = 0.08 * W, padB = 0.14 * H, padT = 0.08 * H;
+  const max = Math.max(...data), n = data.length;
+  const px = (i) => padL + (i / (n - 1)) * (W - padL - 0.02 * W);
+  const py = (v) => padT + (1 - v / max) * (H - padT - padB);
+  const reveal = easeOut(Math.min(1, t / 2.6));
+  const pts = data.map((v, i) => `${px(i)},${py(v)}`).join(' ');
+  const shown = Math.round(reveal * n);
+  const area = `M ${px(0)},${py(0)} ` + data.slice(0, shown).map((v, i) => `L ${px(i)},${py(v)}`).join(' ') + ` L ${px(shown - 1)},${H - padB} L ${px(0)},${H - padB} Z`;
+  svg.innerHTML =
+    `<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color()}" stop-opacity="0.35"/><stop offset="1" stop-color="${color()}" stop-opacity="0"/></linearGradient></defs>`
+    + `<path d="${area}" fill="url(#g)"/>`
+    + `<polyline points="${pts}" fill="none" stroke="${color()}" stroke-width="${H * 0.018}" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4000" stroke-dashoffset="${(1 - reveal) * 4000}"/>`
+    + data.slice(0, shown).map((v, i) => `<circle cx="${px(i)}" cy="${py(v)}" r="${H * 0.022}" fill="${accent()}"/>`).join('');
+  const a = easeOut(Math.min(1, t / 0.8));
+  const title = document.getElementById('title'), sub = document.getElementById('sub');
+  if (title) { title.style.opacity = a; title.style.translate = `0 ${((1 - a) * 3).toFixed(1)}vh`; }
+  if (sub) sub.style.opacity = a;
+}
+window.film = { frame: draw, duration: 4 };
+if (!window.filmHost) {
+  const t0 = performance.now();
+  const loop = () => { const t = (performance.now() - t0) / 1000; window.film.frame(t % window.film.duration); requestAnimationFrame(loop); };
+  loop();
+}
+</script>
+</body>
+</html>

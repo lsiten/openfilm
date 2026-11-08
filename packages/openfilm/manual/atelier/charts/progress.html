@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Progress</title>
+<style>
+:root { --bg: #0F172A; --color: #F59E0B; --accent: #38BDF8; --ink: #F8FAFC; --muted: #94A3B8; --track: #1E293B; --font: 'Inter', 'PingFang SC', 'Noto Sans SC', sans-serif; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); font-family: var(--font); }
+#frame { position: fixed; inset: 0; display: flex; flex-direction: column; justify-content: center; }
+.title { color: var(--ink); font-size: 4.2vw; font-weight: 800; margin: 0 0 4vh 8vw; }
+.sub { color: var(--muted); font-size: 2.1vw; font-weight: 500; margin: -2vh 0 8vh 8.2vw; }
+.bar { margin: 0 8vw; height: 5vh; background: var(--track); border-radius: 999px; overflow: hidden; }
+.fill { height: 100%; width: 0; background: var(--color); border-radius: 999px; }
+.pct { color: var(--ink); font-size: 7vw; font-weight: 800; margin: 5vh 0 0 8vw; }
+</style>
+</head>
+<body>
+<div id="frame">
+  <div class="title">Migration complete</div>
+  <div class="sub">production cutover</div>
+  <div class="bar"><div class="fill" id="fill"></div></div>
+  <div class="pct" id="pct">0%</div>
+</div>
+<script type="module">
+/* Progress bar that fills over time, with the percentage counting up. Colors from CSS vars.
+   Set `target` (0-100) to stop short of 100. Picture is a function of t alone. */
+const target = 100;
+const fill = document.getElementById('fill'), pct = document.getElementById('pct');
+const css = getComputedStyle(document.documentElement);
+const color = () => css.getPropertyValue('--color').trim() || '#F59E0B';
+const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+function draw(t) {
+  const reveal = easeOut(Math.min(1, t / 3));
+  const p = target * reveal;
+  fill.style.width = `${p}%`;
+  fill.style.background = color();
+  pct.textContent = `${Math.round(p)}%`;
+}
+window.film = { frame: draw, duration: 4 };
+if (!window.filmHost) {
+  const t0 = performance.now();
+  const loop = () => { const t = (performance.now() - t0) / 1000; window.film.frame(t % window.film.duration); requestAnimationFrame(loop); };
+  loop();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+{
+  "scenes": [
+    {
+      "name": "title",
+      "file": "theme/title.html",
+      "kind": "theme",
+      "draws": "A title card that loads the shared theme; it only lays out and animates its text.",
+      "colors": ["--bg", "--color", "--accent", "--ink", "--muted"],
+      "edit": "the kicker, title, rule and sub text; the palette comes from theme/theme.css",
+      "requires": ["theme.css"]
+    },
+    {
+      "name": "bar",
+      "file": "charts/bar.html",
+      "kind": "data-viz",
+      "draws": "An animated vertical bar chart; the last bar is the accent, the rest are the color.",
+      "colors": ["--color", "--accent", "--ink", "--muted", "--bg"],
+      "edit": "the data array (label, value); or load a data.json in `ready`",
+      "props": { "required": [], "optional": ["data.json"] }
+    },
+    {
+      "name": "line",
+      "file": "charts/line.html",
+      "kind": "data-viz",
+      "draws": "An animated line chart that grows left to right, with the last point as the accent.",
+      "colors": ["--color", "--accent", "--ink", "--muted", "--bg"],
+      "edit": "the data array (label, value); or load a data.json in `ready`",
+      "props": { "required": [], "optional": ["data.json"] }
+    },
+    {
+      "name": "pie",
+      "file": "charts/pie.html",
+      "kind": "data-viz",
+      "draws": "A donut chart that sweeps in, with labels and a percentage in the middle.",
+      "colors": ["--color", "--accent", "--ink", "--muted", "--bg"],
+      "edit": "the data array (label, value); the parts are normalized to 100%",
+      "props": { "required": [], "optional": ["data.json"] }
+    },
+    {
+      "name": "kpi",
+      "file": "charts/kpi.html",
+      "kind": "data-viz",
+      "draws": "A 2x2 grid of key numbers, each counting up with a green or red delta.",
+      "colors": ["--color", "--accent", "--ink", "--muted", "--bg"],
+      "edit": "the values, labels and deltas (each with a direction)",
+      "props": { "required": [] }
+    },
+    {
+      "name": "progress",
+      "file": "charts/progress.html",
+      "kind": "data-viz",
+      "draws": "Progress bars that fill left to right with a percentage that rises to 100%.",
+      "colors": ["--color", "--accent", "--ink", "--muted", "--bg"],
+      "edit": "the labels and the target percentages",
+      "props": { "required": [] }
+    },
+    {
+      "name": "screenshot",
+      "file": "screens/screenshot.html",
+      "kind": "screen",
+      "draws": "A screen scene: a background (a real screenshot via --bg-image, or the built-in app mock) with a cursor, clicks, highlights and typed text over it.",
+      "colors": ["--color", "--accent", "--ink", "--muted", "--bg"],
+      "edit": "the events (move, click, highlight, type) with normalized 0-1 coordinates; or drop a real screenshot in --bg-image",
+      "props": { "required": [], "optional": ["--bg-image"] }
+    },
+    {
+      "name": "terminal",
+      "file": "screens/terminal.html",
+      "kind": "screen",
+      "draws": "A terminal that types a scripted sequence of commands and shows their output, with a blinking cursor.",
+      "colors": ["--color", "--ink", "--muted", "--bg"],
+      "edit": "the steps (prompt, cmd, out, dur)",
+      "props": { "required": [] }
+    }
+  ]
+}

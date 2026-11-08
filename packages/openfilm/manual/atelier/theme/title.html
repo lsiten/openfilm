@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Title</title>
+<link rel="stylesheet" href="theme.css">
+<style>
+/* Layout only. The palette (bg, color, accent, ink, muted, font) comes from theme.css, loaded above,
+   so this scene shares the film's look without restating a single color. */
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); font-family: var(--font); }
+#frame { position: fixed; inset: 0; display: flex; flex-direction: column; justify-content: center; padding-left: 8vw; }
+.kicker { color: var(--color); font-size: 1.7vw; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; }
+.title { color: var(--ink); font-size: 6vw; font-weight: 800; margin-top: 1.2vh; }
+.rule { width: 0; height: 0.5vw; background: var(--accent); margin-top: 3vh; }
+.sub { color: var(--muted); font-size: 2.2vw; margin-top: 2.4vh; }
+</style>
+</head>
+<body>
+<div id="frame">
+  <div class="kicker" id="kicker">OpenFilm · Atelier</div>
+  <div class="title" id="title">One look, every scene</div>
+  <div class="rule" id="rule"></div>
+  <div class="sub" id="sub">the theme loads; the page only lays itself out</div>
+</div>
+<script type="module">
+/* A title card. The colors come from theme.css; this page only lays out and animates its own text.
+   Picture is a function of t alone. */
+const kicker = document.getElementById('kicker'), title = document.getElementById('title'),
+  rule = document.getElementById('rule'), sub = document.getElementById('sub');
+const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+function draw(t) {
+  const a = easeOut(Math.min(1, t / 0.8));
+  kicker.style.opacity = a; kicker.style.translate = `0 ${((1 - a) * 2).toFixed(1)}vh`;
+  title.style.opacity = a; title.style.translate = `0 ${((1 - a) * 3).toFixed(1)}vh`;
+  rule.style.width = `${a * 12}vw`;
+  sub.style.opacity = easeOut(Math.max(0, (t - 0.5) / 0.8));
+}
+window.film = { frame: draw, duration: 3 };
+if (!window.filmHost) {
+  const t0p = performance.now();
+  const loop = () => { const t = (performance.now() - t0p) / 1000; window.film.frame(t % window.film.duration); requestAnimationFrame(loop); };
+  loop();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Pie chart</title>
+<style>
+:root { --bg: #0F172A; --color: #F59E0B; --accent: #38BDF8; --ink: #E2E8F0; --muted: #94A3B8; --font: 'Inter', 'PingFang SC', 'Noto Sans SC', sans-serif; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); font-family: var(--font); }
+#frame { position: fixed; inset: 0; display: flex; flex-direction: column; }
+.title { color: var(--ink); font-size: 4.2vw; font-weight: 800; margin: 6vh 0 2vh 8vw; }
+.sub { color: var(--muted); font-size: 2.1vw; font-weight: 500; margin: -1vh 0 0 8.2vw; }
+#chart { flex: 1; width: 100%; display: flex; align-items: center; }
+svg { width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<div id="frame">
+  <div class="title" id="title">Channel split</div>
+  <div class="sub" id="sub">by share of revenue</div>
+  <div id="chart"><svg id="c"></svg></div>
+</div>
+<script type="module">
+/* Animated donut/pie chart. Colors from CSS vars + per-slice `color`. The picture is a function of t alone. */
+const data = [
+  { label: 'Direct', value: 38, color: '#F59E0B' },
+  { label: 'Referral', value: 27, color: '#38BDF8' },
+  { label: 'Social', value: 22, color: '#10B981' },
+  { label: 'Other', value: 13, color: '#8B5CF6' },
+];
+const box = document.getElementById('chart'), svg = document.getElementById('c');
+const css = getComputedStyle(document.documentElement);
+const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+function arc(cx, cy, r, a0, a1) {
+  const p = (a) => `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`;
+  const large = a1 - a0 > Math.PI ? 1 : 0;
+  return `M ${cx},${cy} L ${p(a0)} A ${r},${r} 0 ${large} 1 ${p(a1)} Z`;
+}
+function draw(t) {
+  const W = box.clientWidth, H = box.clientHeight;
+  if (W === 0 || H === 0) return;
+  const cx = W * 0.5, cy = H * 0.5, r = Math.min(W, H) * 0.42;
+  const total = data.reduce((s, d) => s + d.value, 0);
+  const reveal = easeOut(Math.min(1, t / 2.4));
+  let a = -Math.PI / 2;
+  const slices = data.map((d) => {
+    const span = (d.value / total) * Math.PI * 2 * reveal, a1 = a + span; a = a1;
+    return `<path d="${arc(cx, cy, r, a - span, a1)}" fill="${d.color}"/>`;
+  }).join('');
+  const labels = data.map((d) => {
+    const ang = -Math.PI / 2 + (d.value / total) * Math.PI * 2 * reveal;
+    const x = cx + r * 1.2 * Math.cos(ang), y = cy + r * 1.2 * Math.sin(ang);
+    return `<text x="${x}" y="${y}" fill="${css.getPropertyValue('--ink').trim()||'#E2E8F0'}" font-size="${H * 0.04}" text-anchor="middle" dominant-baseline="middle">${d.label} ${d.value}%</text>`;
+  }).join('');
+  const donut = 0.55, hole = r * donut * reveal;
+  const center = `<circle cx="${cx}" cy="${cy}" r="${hole}" fill="${css.getPropertyValue('--bg').trim()||'#0F172A'}"/>`;
+  svg.innerHTML = slices + center + labels;
+  const a2 = easeOut(Math.min(1, t / 0.8));
+  const title = document.getElementById('title'), sub = document.getElementById('sub');
+  if (title) { title.style.opacity = a2; title.style.translate = `0 ${((1 - a2) * 3).toFixed(1)}vh`; }
+  if (sub) sub.style.opacity = a2;
+}
+window.film = { frame: draw, duration: 4 };
+if (!window.filmHost) {
+  const t0 = performance.now();
+  const loop = () => { const t = (performance.now() - t0) / 1000; window.film.frame(t % window.film.duration); requestAnimationFrame(loop); };
+  loop();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+/* Atelier theme — the shared palette and fonts for a film's scenes.
+   A page loads it in its <head> so every scene reads the same colors:
+     <link rel="stylesheet" href="theme.css">
+   Then the page's own :root may override any one value it needs. What the scenes share (a look)
+   lives here, so a film is consistent; changing a color here changes it everywhere at once.
+   Keep each text color legible on its background — `scripts/validate.mjs` checks the contrast of
+   --ink, --color and --muted on --bg, so a theme that looks fine in the editor is not shipped dark. */
+:root {
+  --bg: #0F172A;       /* the backdrop every scene sits on */
+  --color: #F59E0B;    /* the primary accent: bars, highlights, the cursor */
+  --accent: #38BDF8;   /* the secondary accent: the last bar, links, a rule */
+  --ink: #F8FAFC;      /* text on --bg (contrast ~16:1) */
+  --muted: #94A3B8;    /* secondary text on --bg (contrast ~7:1) */
+  --font: 'Inter', 'PingFang SC', 'Noto Sans SC', sans-serif;
+  --mono: 'SF Mono', 'Menlo', monospace;
+}

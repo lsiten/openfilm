@@ -1,0 +1,27 @@
+{
+  "repository": "https://github.com/openfilm/openfilm/tree/main/packages/openfilm/manual/atelier",
+  "kind": "workflow",
+  "order": 4,
+  "icon": "grid",
+  "title": {
+    "en": "The atelier",
+    "zh-CN": "素材库",
+    "ja": "アトリエ",
+    "ko": "아틀리에",
+    "es": "El atelier"
+  },
+  "summary": {
+    "en": "Ready-made scenes for a film — data-viz, a shared theme, screen scenes, a catalog and a validator.",
+    "zh-CN": "一部片子现成的素材：数据可视化、共享主题、屏幕场景、目录和校验。",
+    "ja": "映画向けの ready-made シーン：データ可視化、共有テーマ、画面のシーン、カタログと検証。",
+    "ko": "영상에 쓸 준비된 장면: 데이터 시각화, 공유 테마, 화면 장면, 카탈로그와 검증.",
+    "es": "Escenas listas para un vídeo: visualización de datos, un tema compartido, escenas de pantalla, un catálogo y un validador."
+  },
+  "details": {
+    "zh-CN": "什么时候用：你要做图表、标题、屏幕或终端这类画面，或要加一个新的场景，或要检查一份用了这些场景的片子时，先读它。\n它教什么：从素材库拿一个现成的场景（柱状图、折线、饼图、KPI、进度、截图、终端）放进项目，用 film.html 接进去；一个共享的主题 theme.css 让所有场景同一个样子；catalog.json 列出每个场景和它要什么，scripts/validate.mjs 在你说做好之前先查一遍；加一个新场景的五步，让目录、校验和下一个智能体都找得到、信得过。\n关掉后：智能体只能自己画每一个场景，容易画错、画得不统一，也查不出来。一般不要关。",
+    "en": "When it is used: before you make a chart, a title, a screen or a terminal shot, add a new scene, or look at a film that uses these scenes.\nWhat it teaches: take a ready scene from the kit (bar, line, pie, kpi, progress, screenshot, terminal) into the project and wire it into film.html; a shared theme.css gives every scene one look; catalog.json lists each scene and what it takes, and scripts/validate.mjs checks a film before you say it is done; the five steps to add a scene, so the catalog, the validator and the next agent all find it and trust it.\nTurned off: agents have to draw every scene themselves, and easily get them wrong, make them inconsistent, or miss a check. Best left on.",
+    "ja": "使うとき：チャート、タイトル、画面、ターミナルのショットを作る前、新しいシーンを追加する前、これらのシーンを使う映画を見る前に、まず読みます。\n教えること：キットから ready-made のシーン（bar、line、pie、kpi、progress、screenshot、terminal）をプロジェクトに取り、film.html に接続する。共有の theme.css が全シーンに一つの見た目を渡す。catalog.json が各シーンとそれが必要なものを書き、scripts/validate.mjs が完成と伝える前に映画を確かめる。シーンを追加する 5 の手順は、カタログ、検証、次のエージェントの全がそれを発見し、信じるようにするため。\nオフにすると：エージェントは全シーン自分で描かねばならず、間違えやすく、不統一になり、チェックを見落とします。オンのままがおすすめ。",
+    "ko": "언제 쓰나요: 차트, 제목, 화면, 터미널 장면을 만들거나, 새 장면을 추가하거나, 이 장면들을 쓰는 영상을 보기 전에 먼저 읽습니다.\n무엇을 알려 주나요: 키트에서 준비된 장면(bar, line, pie, kpi, progress, screenshot, terminal)을 프로젝트에 넣고 film.html에 연결하는 법. 공유 theme.css가 모든 장면에게 하나의 외형을 주고, catalog.json이 각 장면과 그 필요 사항을 적고, scripts/validate.mjs가 완성이라고 하기 전에 영상을 확인합니다. 장면을 추가하는 5가지 절차는 카탈로그, 검증, 다음 에이전트가 모두 그것을 찾아 신뢰하도록 합니다.\n끄면: 에이전트가 모든 장면을 직접 그려야 하며, 틀리기 쉽고 일관되지 않고 점검을 놓치기 쉽습니다. 켜 두는 것을 권합니다.",
+    "es": "Cuándo se usa: antes de hacer un gráfico, un título, una escena de pantalla o una de terminal, añadir una escena nueva, o revisar un vídeo que use estas escenas.\nQué enseña: tomar una escena lista del kit (bar, line, pie, kpi, progress, screenshot, terminal) al proyecto y conectarla a film.html; un tema compartido theme.css da una misma apariencia a cada escena; catalog.json lista cada escena y lo que pide, y scripts/validate.mjs revisa un vídeo antes de decir que está hecho; los cinco pasos para añadir una escena, para que el catálogo, el validador y el siguiente agente la encuentren y confíen en ella.\nSi se desactiva: los agentes tienen que dibujar cada escena ellos mismos, y con facilidad la hacen mal, la hacen inconsistente o pasan de largo un check. Mejor dejarla activada."
+  }
+}

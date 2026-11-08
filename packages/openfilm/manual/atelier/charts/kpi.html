@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>KPI grid</title>
+<style>
+:root { --bg: #0F172A; --color: #F59E0B; --accent: #38BDF8; --ink: #F8FAFC; --muted: #94A3B8; --card: #1E293B; --good: #10B981; --bad: #EF4444; --font: 'Inter', 'PingFang SC', 'Noto Sans SC', sans-serif; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); font-family: var(--font); }
+#frame { position: fixed; inset: 0; display: flex; flex-direction: column; }
+.title { color: var(--ink); font-size: 3.6vw; font-weight: 800; margin: 6vh 0 0 8vw; }
+.sub { color: var(--muted); font-size: 1.9vw; font-weight: 500; margin: 1vh 0 0 8.2vw; }
+.grid { flex: 1; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 3vw 4vw; margin: 5vh 8vw 6vh; }
+.card { background: var(--card); border-radius: 2vw; padding: 4vh 3vw; display: flex; flex-direction: column; justify-content: center; }
+.v { color: var(--ink); font-size: 6vw; font-weight: 800; line-height: 1; }
+.l { color: var(--muted); font-size: 2vw; font-weight: 500; margin-top: 2vh; }
+.d { color: var(--good); font-size: 1.9vw; font-weight: 700; margin-top: 2vh; }
+.d.bad { color: var(--bad); }
+</style>
+</head>
+<body>
+<div id="frame">
+  <div class="title">This quarter</div>
+  <div class="sub">key numbers</div>
+  <div class="grid" id="grid"></div>
+</div>
+<script type="module">
+/* KPI grid: 2-4 cards whose big numbers count up. Colors from CSS vars. Picture is a function of t alone. */
+const data = [
+  { v: 1280, label: 'Customers', d: '+18%', good: true },
+  { v: 92, label: 'NPS', d: '+6', good: true },
+  { v: 41, label: 'Churn %', d: '-2.4', good: false },
+  { v: 7.4, label: 'Avg. spend', d: '+12%', good: true, decimals: 1, prefix: '$' },
+];
+const grid = document.getElementById('grid');
+grid.innerHTML = data.map((d) =>
+  `<div class="card"><div class="v" data-v></div><div class="l">${d.label}</div><div class="d ${d.good ? '' : 'bad'}">${d.d}</div></div>`
+).join('');
+const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+function fmt(d, n) {
+  const val = d.decimals ? n.toFixed(d.decimals) : Math.round(n).toLocaleString();
+  return (d.prefix || '') + val + (d.suffix || '');
+}
+function draw(t) {
+  const reveal = easeOut(Math.min(1, t / 2.2));
+  [...grid.children].forEach((card, i) => {
+    const d = data[i], n = d.v * reveal, el = card.querySelector('.v');
+    if (el) el.textContent = fmt(d, n);
+    const a = easeOut(Math.max(0, Math.min(1, (t - i * 0.15) / 0.8)));
+    card.style.opacity = a;
+    card.style.translate = `0 ${((1 - a) * 2).toFixed(1)}vh`;
+  });
+}
+window.film = { frame: draw, duration: 4 };
+if (!window.filmHost) {
+  const t0 = performance.now();
+  const loop = () => { const t = (performance.now() - t0) / 1000; window.film.frame(t % window.film.duration); requestAnimationFrame(loop); };
+  loop();
+}
+</script>
+</body>
+</html>

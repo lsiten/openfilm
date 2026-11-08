@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Terminal</title>
+<style>
+:root { --bg: #0B0F19; --color: #22D3A6; --accent: #F59E0B; --ink: #E5E7EB; --muted: #9CA3AF; --term: #10161F; --prompt: #7C3AED; --font: 'Inter', 'PingFang SC', sans-serif; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); font-family: var(--font); }
+#frame { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+.term { width: 78vw; height: 80vh; background: var(--term); border-radius: 1.6vw; padding: 4vh 3vw; display: flex; flex-direction: column; box-shadow: 0 4vh 12vw rgba(0,0,0,.5); }
+.bar { display: flex; gap: 1vw; margin-bottom: 3vh; }
+.bar i { width: 1.4vw; height: 1.4vw; border-radius: 50%; display: inline-block; }
+.red { background: #EF4444; } .yellow { background: #F59E0B; } .green { background: #22C55E; }
+.out { font-family: 'SF Mono', 'Menlo', monospace; font-size: 1.9vw; line-height: 1.5; color: var(--ink); white-space: pre-wrap; }
+.p { color: var(--prompt); } .c { color: var(--color); } .o { color: var(--muted); }
+.cursor { display: inline-block; width: 0.9vw; height: 1.5vw; background: var(--color); vertical-align: -0.1vw; }
+</style>
+</head>
+<body>
+<div id="frame">
+  <div class="term">
+    <div class="bar"><i class="red"></i><i class="yellow"></i><i class="green"></i></div>
+    <div class="out" id="out"></div>
+  </div>
+</div>
+<script type="module">
+/* Synthetic terminal: a scripted sequence of commands and their output, drawn over time.
+   No real capture — the text is scripted in `steps`. Picture is a function of t alone. */
+const steps = [
+  { prompt: 'deploy@prod', cmd: 'openfilm render', out: ['rendering 120 frames\u2026', '\u2713 done \u2192 film.mp4'], dur: 1.6 },
+  { prompt: 'deploy@prod', cmd: 'openfilm look 3-6', out: ['12 frames \u00b7 same picture', '\u2713 no black, no flash'], dur: 1.4 },
+];
+const out = document.getElementById('out');
+let t0 = 0;
+for (const s of steps) s.start = t0, s.end = t0 + s.dur, t0 += s.dur;
+const total = t0;
+const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+const blink = (t) => Math.floor(t / 0.5) % 2 === 0;
+function lineHTML(s, typed, done) {
+  const show = done ? s.cmd : s.cmd.slice(0, Math.max(0, Math.round(typed * s.cmd.length)));
+  const cmd = `<div><span class="p">\u203a ${s.prompt} </span><span class="c">$ ${show}</span>${!done ? '<span class="cursor"></span>' : ''}</div>`;
+  const outputs = done ? s.out.map((o) => `<div class="o">${o}</div>`).join('') : '';
+  return cmd + outputs;
+}
+function draw(t) {
+  let html = '';
+  let cursorOn = true;
+  for (const s of steps) {
+    if (t < s.start) continue;
+    const done = t >= s.end;
+    const typed = done ? 1 : easeOut((t - s.start) / (s.dur * 0.6));
+    html += lineHTML(s, typed, done);
+    if (done) cursorOn = false;
+  }
+  if (!cursorOn) {
+    const s = steps[steps.length - 1];
+    html += `<div><span class="p">\u203a ${s.prompt} </span><span class="cursor"></span></div>`;
+  }
+  out.innerHTML = html;
+  const cur = out.querySelector('.cursor');
+  if (cur) cur.style.opacity = blink(t) ? 1 : 0;
+}
+window.film = { frame: draw, duration: total };
+if (!window.filmHost) {
+  const t0p = performance.now();
+  const loop = () => { const t = (performance.now() - t0p) / 1000; window.film.frame(t % window.film.duration); requestAnimationFrame(loop); };
+  loop();
+}
+</script>
+</body>
+</html>

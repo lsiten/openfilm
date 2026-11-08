@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Screen</title>
+<style>
+:root {
+  --bg: #0B0F19; --color: #22D3A6; --accent: #F59E0B; --ink: #E5E7EB; --muted: #6B7280;
+  --panel: #161C28; --line: #232C3B; --font: 'Inter', 'PingFang SC', 'Noto Sans SC', sans-serif;
+  /* drop a real screenshot in here instead of the mock: --bg-image: url(screen.png); */
+}
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); font-family: var(--font); }
+#stage { position: fixed; inset: 0; }
+#bg { position: absolute; inset: 0; background: var(--bg-image, transparent) center / cover no-repeat, var(--panel); }
+/* synthetic app mock (stand-in for a screenshot) */
+.mock { position: absolute; inset: 0; }
+.hdr { height: 8vh; background: #1B2434; display: flex; align-items: center; padding: 0 4vw; }
+.hdr .t { color: var(--ink); font-weight: 700; font-size: 2vw; }
+.side { position: absolute; left: 0; top: 8vh; width: 16vw; height: calc(100% - 8vh); background: #141B28; }
+.side i { display: block; height: 4vh; margin: 4vh 3vw 0; border-radius: 0.6vw; background: #232C3B; }
+.side i.on { background: var(--color); }
+.main { position: absolute; left: 16vw; top: 8vh; right: 0; bottom: 0; padding: 4vw; display: flex; flex-direction: column; gap: 3vh; }
+.card { height: 20vh; background: #1B2434; border-radius: 1vw; }
+.field { height: 8vh; background: #101725; border: 1px solid var(--line); border-radius: 0.8vw; }
+/* overlays */
+#over { position: absolute; inset: 0; pointer-events: none; }
+.cursor { position: absolute; width: 2.4vw; height: 2.4vw; transition: none; }
+.cursor svg { width: 100%; height: 100%; filter: drop-shadow(0 0.2vw 0.6vw rgba(0,0,0,.6)); }
+.ripple { position: absolute; width: 3vw; height: 3vw; border: 0.4vw solid var(--accent); border-radius: 50%; box-sizing: border-box; }
+.hl { position: absolute; border: 0.3vw solid var(--accent); border-radius: 1vw; box-shadow: 0 0 0 0.6vw rgba(245,158,11,.18); }
+.type { position: absolute; color: var(--ink); font-size: 2vw; font-family: 'SF Mono', monospace; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bg"></div>
+  <div class="mock">
+    <div class="hdr"><span class="t">Dashboard</span></div>
+    <div class="side"><i class="on"></i><i></i><i></i><i></i></div>
+    <div class="main"><div class="card" id="c1"></div><div class="field" id="f1"></div><div class="card"></div></div>
+  </div>
+  <div id="over">
+    <div class="cursor" id="cursor"><svg viewBox="0 0 24 24"><path d="M4 2 L4 20 L9 15 L13 22 L16 20 L12 13 L19 13 Z" fill="#F8FAFC" stroke="#111" stroke-width="1"/></svg></div>
+  </div>
+</div>
+<script type="module">
+/* Synthetic screen scene: a static background (this mock, or --bg-image: a screenshot) with scripted
+   overlays — the cursor, clicks, highlights and typed text move over it on a timeline. No capture.
+   Coordinates are normalized 0-1 over the stage. Picture is a function of t alone. */
+const W = () => document.getElementById('stage').clientWidth;
+const H = () => document.getElementById('stage').clientHeight;
+const events = [
+  { t: 0.3, type: 'move', x: 0.75, y: 0.55 },
+  { t: 1.0, type: 'click', x: 0.75, y: 0.55 },
+  { t: 1.4, type: 'highlight', x: 0.22, y: 0.66, w: 0.55, h: 0.16, until: 2.6 },
+  { t: 1.7, type: 'move', x: 0.35, y: 0.72 },
+  { t: 2.0, type: 'type', x: 0.25, y: 0.70, text: 'hello world' },
+  { t: 3.0, type: 'click', x: 0.35, y: 0.72 },
+];
+const over = document.getElementById('over'), cursor = document.getElementById('cursor');
+let px = 0, py = 0;
+const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+function draw(t) {
+  let curX = 0.5, curY = 0.5;
+  for (const e of events) if (e.t <= t && (e.type === 'move' || e.type === 'click')) { curX = e.x; curY = e.y; }
+  cursor.style.left = `${curX * 100}%`; cursor.style.top = `${curY * 100}%`;
+  const ripples = over.querySelectorAll('.ripple, .hl, .type');
+  ripples.forEach((n) => n.remove());
+  for (const e of events) {
+    if (t < e.t) continue;
+    if (e.type === 'click') {
+      const age = t - e.t, r = document.createElement('div'); r.className = 'ripple';
+      r.style.left = `${e.x * 100}%`; r.style.top = `${e.y * 100}%`;
+      const s = 1 + easeOut(Math.min(1, age / 0.6)) * 2.4;
+      r.style.transform = `translate(-50%,-50%) scale(${s})`;
+      r.style.opacity = 1 - Math.min(1, age / 0.6);
+      over.appendChild(r);
+    }
+    if (e.type === 'highlight' && (!e.until || t <= e.until)) {
+      const h = document.createElement('div'); h.className = 'hl';
+      h.style.left = `${e.x * 100}%`; h.style.top = `${e.y * 100}%`;
+      h.style.width = `${e.w * 100}%`; h.style.height = `${e.h * 100}%`;
+      over.appendChild(h);
+    }
+    if (e.type === 'type') {
+      const age = t - e.t;
+      const n = Math.max(0, Math.round(age / 0.09));
+      const el = document.createElement('div'); el.className = 'type';
+      el.style.left = `${e.x * 100}%`; el.style.top = `${e.y * 100}%`;
+      el.textContent = e.text.slice(0, Math.min(e.text.length, n));
+      over.appendChild(el);
+    }
+  }
+}
+window.film = { frame: draw, duration: 4 };
+if (!window.filmHost) {
+  const t0 = performance.now();
+  const loop = () => { const t = (performance.now() - t0) / 1000; window.film.frame(t % window.film.duration); requestAnimationFrame(loop); };
+  loop();
+}
+</script>
+</body>
+</html>
