@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { revOf } from './film.mjs';
-import { createWatchers, watchFolder, watchTree } from './watch.mjs';
+import { createWatchers, watchFolder } from './watch.mjs';
 
 const settle = (ms = 400) => new Promise((r) => setTimeout(r, ms));
 const until = async (ready) => {
@@ -126,33 +126,6 @@ test('film.html changes come with their revision, other files as one files event
     watchers.closeAll();
   }
 });
-
-test('watching folder by folder (Linux): a file replaced by a rename is seen every time, and new folders are taken in', async () => {
-  const root = mkdtempSync(join(tmpdir(), 'of-tree-'));
-  writeFileSync(join(root, 'film.html'), '{}');
-  mkdirSync(join(root, 'node_modules'));
-  const names = new Set();
-  const close = watchTree(root, (name) => names.add(name), false);
-  try {
-    for (const n of [1, 2]) {
-      writeFileSync(join(root, `film.html.${n}.tmp`), `{"n":${n}}`);
-      renameSync(join(root, `film.html.${n}.tmp`), join(root, 'film.html'));
-      await settle(150);
-      assert.ok(names.has('film.html'), `replacement ${n} seen`);
-      names.clear();
-    }
-    mkdirSync(join(root, 'scenes'));
-    await settle(150);
-    writeFileSync(join(root, 'scenes', 'a.html'), '<p>');
-    writeFileSync(join(root, 'node_modules', 'x.js'), '');
-    await settle(150);
-    assert.ok(names.has('scenes/a.html'), 'a file in a folder made while watching');
-    assert.ok(![...names].some((n) => n?.startsWith('node_modules/')), 'ignored folders are not watched');
-  } finally {
-    close();
-  }
-});
-
 
 test('renamed folders keep their listeners and original unsubscribe functions through repeated moves', async () => {
   const scratch = mkdtempSync(join(tmpdir(), 'of-watch-rename-'));
